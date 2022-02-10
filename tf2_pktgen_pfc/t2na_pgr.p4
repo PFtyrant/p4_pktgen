@@ -80,46 +80,46 @@ control i(inout headers hdr, inout metadata md,
 		inout ingress_intrinsic_metadata_for_tm_t ig_intr_tm_md) {
 
 
+	action set_port(PortId_t port) {
+		ig_intr_tm_md.ucast_egress_port = port;
+	}
+		
+	table forward {
+		key = { ig_intr_md.ingress_port : exact; }
+		actions = { set_port; }
+	}
 
 	apply {
-# 136, 144 are lying on pipeline 1
-		if (ig_intr_md.ingress_port == 136) {
-			ig_intr_tm_md.ucast_egress_port = 144;
-		} else if (ig_intr_md.ingress_port == 144) {
-			ig_intr_tm_md.ucast_egress_port = 136;
-		}
-		//if (md.app_id == 3) {
-		if (ig_intr_md.ingress_port == 134) {
-			ig_intr_tm_md.ucast_egress_port = 0;	
-		}
+		// 136, 144 are lying on pipeline 1
+		forward.apply();
 	}
-	}
+}
 
-	control iDprsr(packet_out packet, inout headers hdr, in metadata md,
+control iDprsr(packet_out packet, inout headers hdr, in metadata md,
 			in ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md) {
-		apply {
-			packet.emit(hdr.pfc);
-			packet.emit(hdr.app_ctx);
-			packet.emit(hdr.ethernet);
-		}
+	apply {
+		packet.emit(hdr.pfc);
+		packet.emit(hdr.app_ctx);
+		packet.emit(hdr.ethernet);
 	}
+}
 
-	parser ePrsr(packet_in packet, out headers hdr, out metadata md,
-			out egress_intrinsic_metadata_t eg_intr_md) {
-		state start { transition reject; }
-	}
+parser ePrsr(packet_in packet, out headers hdr, out metadata md,
+		out egress_intrinsic_metadata_t eg_intr_md) {
+	state start { transition reject; }
+}
 
-	control e(inout headers hdr, inout metadata md, in egress_intrinsic_metadata_t eg_intr_md,
-			in egress_intrinsic_metadata_from_parser_t eg_intr_md_from_prsr,
-			inout egress_intrinsic_metadata_for_deparser_t eg_intr_md_for_dprs,
-			inout egress_intrinsic_metadata_for_output_port_t eg_intr_md_for_oport) {
-		apply {}
-	}
+control e(inout headers hdr, inout metadata md, in egress_intrinsic_metadata_t eg_intr_md,
+		in egress_intrinsic_metadata_from_parser_t eg_intr_md_from_prsr,
+		inout egress_intrinsic_metadata_for_deparser_t eg_intr_md_for_dprs,
+		inout egress_intrinsic_metadata_for_output_port_t eg_intr_md_for_oport) {
+	apply {}
+}
 
-	control eDprsr(packet_out packet, inout headers hdr, in metadata md,
-			in egress_intrinsic_metadata_for_deparser_t eg_intr_md_for_dprs) {
-		apply {}
-	}
+control eDprsr(packet_out packet, inout headers hdr, in metadata md,
+		in egress_intrinsic_metadata_for_deparser_t eg_intr_md_for_dprs) {
+	apply {}
+}
 
-	Pipeline(iPrsr(), i(), iDprsr(), ePrsr(), e(), eDprsr()) hohoho;
-	Switch(hohoho) main;
+Pipeline(iPrsr(), i(), iDprsr(), ePrsr(), e(), eDprsr()) hohoho;
+Switch(hohoho) main;
