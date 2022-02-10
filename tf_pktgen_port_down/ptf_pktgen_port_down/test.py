@@ -160,13 +160,13 @@ def pgen_port(pipe_id):
 class PortDownPktgenTest(BfRuntimeTest):
     def setUp(self):
         client_id = 0
-        p4_name = "t2na_pktgen_portdown_test"
+        p4_name = "tna_pktgen_portdown_test"
         BfRuntimeTest.setUp(self, client_id, p4_name)
 
     def runTest(self):
         logger.info(
             "=============== Testing Packet Generator trigger by port down ===============")
-        bfrt_info = self.interface.bfrt_info_get("t2na_pktgen_portdown_test")
+        bfrt_info = self.interface.bfrt_info_get("tna_pktgen_portdown_test")
 
         pktgen_app_cfg_table = bfrt_info.table_get("app_cfg")
         pktgen_pkt_buffer_table = bfrt_info.table_get("pkt_buffer")

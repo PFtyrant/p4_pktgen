@@ -109,7 +109,7 @@ class TimerPktgenTest(BfRuntimeTest):
             [pktgen_pkt_buffer_table.make_data([gc.DataTuple('buffer', bytearray(bytes(p)[:]))])])
 
         # pattern value and pattern mask are not need in dprsr function, but it need to assgin in to app cfg table....
-        pattern_value = 0x12345678
+        pattern_value = 0x1234
         pattern_mask = 0x00000000
         # Set pktgen table and enteris
         port = make_port(pipe_id, pgen_port)
