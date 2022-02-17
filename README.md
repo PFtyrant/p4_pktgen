@@ -28,3 +28,7 @@ Note: pktgen check 32-bit front of the packet for pattern matching.
 Deparser Triggr : Using pktgen extern to trigger pktgen. This feature is only triggring pktgen, all of the setting of pktgen defined by control plane.
 
 PFC : When PPG and Queue are meet the threshold, the pktgen will generate the PFC packet.
+
+## Test Result
+
+https://www.notion.so/p4switchprofile-ecmplag/PKT-Gen-84050d00da3c40129418e16254fc5f2c
