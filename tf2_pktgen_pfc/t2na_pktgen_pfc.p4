@@ -18,9 +18,6 @@ header ethernet_h {
 	bit<16> etype;
 }
 struct headers {
-	pktgen_timer_header_t timer;
-	pktgen_port_down_header_t port_down;
-	pktgen_recirc_header_t recirc_dprsr;
 	pktgen_pfc_header_t pfc;
 	app_ctx_h app_ctx;
 	ethernet_h ethernet;
@@ -92,15 +89,21 @@ control i(inout headers hdr, inout metadata md,
 	apply {
 		// 136, 144 are lying on pipeline 1
 		forward.apply();
+		if (hdr.pfc.isValid()) {
+		    hdr.pfc.setInvalid();
+		}
 	}
 }
 
 control iDprsr(packet_out packet, inout headers hdr, in metadata md,
 			in ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md) {
 	apply {
+		packet.emit(hdr);
+		/*
 		packet.emit(hdr.pfc);
 		packet.emit(hdr.app_ctx);
 		packet.emit(hdr.ethernet);
+		*/
 	}
 }
 

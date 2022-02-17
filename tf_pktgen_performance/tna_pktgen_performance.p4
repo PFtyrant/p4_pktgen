@@ -30,12 +30,8 @@
 
 struct headers {
     pktgen_timer_header_t timer;
-    pktgen_port_down_header_t port_down;
     ethernet_h ethernet;
-    vlan_tag_h vlan_tag;
     ipv4_h ipv4;
-    tcp_h tcp;
-    udp_h udp;
 }
 
 parser SwitchIngressParser(
@@ -47,37 +43,32 @@ parser SwitchIngressParser(
     state start {
         packet.extract(ig_intr_md);
         packet.advance(PORT_METADATA_SIZE);
+	
+	/*
+	transition select(ig_intr_md.ingress_port) {
+	    134 : parse_pktgen_timer;
+	    default : reject;
+	}
+	*/
+		
+        pktgen_timer_header_t pktgen_timer_hdr = packet.lookahead<pktgen_timer_header_t>();
+        transition select(pktgen_timer_hdr.app_id) {
+            1 : parse_pktgen_timer;
+            default : reject;
+        }
+    }
 
-        transition select(ig_intr_md.ingress_port) {
-#if __TARGET_TOFINO__ == 2
-            6 : parse_pktgen;
-#else
-            68 : parse_pktgen;
-#endif
-            default : parse_ethernet;
-        }
-    }
-    state parse_pktgen {
-        pktgen_port_down_header_t pktgen_pd_hdr = packet.lookahead<pktgen_port_down_header_t>();
-        //pktgen_timer_header_t pktgen_timer_hdr = packet.lookahead<pktgen_timer_header_t>();
-        transition select(pktgen_pd_hdr.app_id) {
-        //transition select(pktgen_timer_hdr.app_id) {
-                1 : parse_pktgen_timer;
-                2 : parse_pktgen_port_down;
-                default : reject;
-        }
-    }
     state parse_pktgen_timer {
         packet.extract(hdr.timer);
         transition parse_ethernet;
     }
-    state parse_pktgen_port_down {
-        packet.extract(hdr.port_down);
-        transition parse_ethernet;
-    }
     state parse_ethernet {
         packet.extract(hdr.ethernet);
-        transition accept;
+        transition parse_ipv4;
+    }
+    state parse_ipv4 {
+	packet.extract(hdr.ipv4);
+	transition accept;
     }
 }
 
@@ -104,7 +95,7 @@ control SwitchIngress(
 
     Counter<bit<32>, bit<9>>(10, CounterType_t.PACKETS_AND_BYTES) indirect_counter;
     DirectCounter<bit<32>>(CounterType_t.PACKETS_AND_BYTES) direct_counter;
-
+    bit<9> index;
     action set_port(PortId_t port) {
 	ig_intr_tm_md.ucast_egress_port = port;
 	direct_counter.count();
@@ -118,6 +109,14 @@ control SwitchIngress(
     }
 
     apply {
+	// For checking app_id is correct.
+	if (hdr.timer.isValid()) {
+	    index = 5w0 +++ hdr.timer.app_id;
+	    indirect_counter.count(index);
+	}
+	// If it is not set to invalid, the packets will not go out. Why does this function make packets stuck?
+	//hdr.timer.setInvalid();
+
 	t.apply();
         ig_intr_tm_md.bypass_egress = 1w1;
     }

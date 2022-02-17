@@ -55,7 +55,7 @@ logger.addHandler(logging.StreamHandler())
 
 dev_id = 0
 client_id = 0
-p4_name = "t2na_pgr"
+p4_name = "t2na_pktgen_pfc"
 
 swports = []
 pgen_ports = []

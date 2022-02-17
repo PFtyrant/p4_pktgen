@@ -35,7 +35,6 @@ assert g_is_tofino or g_is_tofino2
 
 g_num_pipes = int(testutils.test_param_get("num_pipes"))
 g_timer_app_id = 1
-g_port_down_app_id = 2
 
 logger = logging.getLogger('Test')
 if not len(logger.handlers):
@@ -51,72 +50,6 @@ def port_to_pipe(port):
 def make_port(pipe, local_port):
     return (pipe << 7) | local_port
 
-
-swports = []
-for device, port, ifname in config["interfaces"]:
-    pipe = port_to_pipe(port)
-    if pipe < g_num_pipes:
-        swports.append(port)
-        swports.sort()
-
-swports_0 = []
-swports_1 = []
-swports_2 = []
-swports_3 = []
-# the following method categorizes the ports in ports.json file as belonging to either of the pipes (0, 1, 2, 3)
-for port in swports:
-    pipe = port_to_pipe(port)
-    if pipe == 0:
-        swports_0.append(port)
-    elif pipe == 1:
-        swports_1.append(port)
-    elif pipe == 2:
-        swports_2.append(port)
-    elif pipe == 3:
-        swports_3.append(port)
-
-
-def CleanupForwardTable(self, target=None):
-    if not target:
-        target = gc.Target(device_id=0, pipe_id=0xFFFF)
-    resp = self.forward.entry_get(target, [], {"from_hw": False})
-    for _, key in resp:
-        if key:
-            self.forward.entry_del(target, [key])
-
-
-def pgen_timer_hdr_to_dmac(pipe_id, app_id, batch_id, packet_id):
-    """
-    Given the fields of a 6-byte packet-gen header return an Ethernet MAC address
-    which encodes the same values.
-    """
-    if g_is_tofino:
-        pipe_shift = 3
-    else:
-        pipe_shift = 4
-    return '%02x:00:%02x:%02x:%02x:%02x' % ((pipe_id << pipe_shift) | app_id,
-                                            batch_id >> 8,
-                                            batch_id & 0xFF,
-                                            packet_id >> 8,
-                                            packet_id & 0xFF)
-
-
-def pgen_port_down_hdr_to_dmac(pipe_id, app_id, down_port, packet_id):
-    """
-    Given the fields of a 6-byte packet-gen header return an Ethernet MAC address
-    which encodes the same values.
-    """
-    if g_is_tofino:
-        pipe_shift = 3
-    else:
-        pipe_shift = 4
-    return '%02x:00:%02x:%02x:%02x:%02x' % ((pipe_id << pipe_shift) | app_id,
-                                            down_port >> 8,
-                                            down_port & 0xFF,
-                                            packet_id >> 8,
-                                            packet_id & 0xFF)
-
-
 def pgen_port(pipe_id):
     """
     Given a pipe return a port in that pipe which is usable for packet
@@ -130,6 +63,13 @@ def pgen_port(pipe_id):
         pipe_local_port = 6
     return make_port(pipe_id, pipe_local_port)
 
+
+
+def make_packet(pktlen):
+        p = testutils.simple_ip_packet(
+            pktlen=pktlen, eth_dst="99:99:99:99:99:99")
+        print(p.show())
+        return p
 
 class TimerPktgenTest(BfRuntimeTest):
     def setUp(self):
@@ -151,35 +91,36 @@ class TimerPktgenTest(BfRuntimeTest):
         # timer pktgen app_id = 1 one shot 0
         target = gc.Target(device_id=0, pipe_id=0xffff)
         app_id = g_timer_app_id
-        pktlen = 100
-        pgen_pipe_id = 0
-        src_port = make_port(pgen_pipe_id, 6)
+        # pipe 0 : 1, 6
+        # pipe 1, 2, 3 : 0, 2, 4, 6
+        # pipes = [0, 1, 2, 3]
+        # ports = [0, 1, 2, 3, 4, 5, 6, 7]
+        
+        pktlens = [64, 128, 256, 512, 1024, 1518]
+
+        pgen_pipe_id = 1
+        chan_port =0
+        pktlens_id = 4
+        src_port = make_port(pgen_pipe_id, chan_port)
         p_count = 1  # packets per batch
         b_count = 1  # batch number
         buff_offset = 0  # generated packets' payload will be taken from the offset in buffer
-        time = 0        
+        time_ns = 0      
         out_port = None
         if g_is_tofino:
             out_port = 0
         if g_is_tofino2:
             out_port = 144
 
-        # build expected generated packets
-        p = testutils.simple_ip_packet(
-            pktlen=pktlen, eth_dst="99:99:99:99:99:99")
-        pkt_lst = []
-        pkt_len = [pktlen] * p_count * b_count
-        print(p.show())
-
         try:
-
             self.forward.entry_add(
                 target,
                 [self.forward.make_key([gc.KeyTuple('ig_intr_md.ingress_port', src_port)])],
                 [self.forward.make_data([gc.DataTuple('port', out_port)],
                                           'SwitchIngress.set_port')]
             )
-            
+            p = make_packet(pktlens[pktlens_id])
+            pktlen = pktlens[pktlens_id]
             # Enable packet generation on the port
             logger.info("enable pktgen port")
             pktgen_port_cfg_table.entry_add(
@@ -192,7 +133,7 @@ class TimerPktgenTest(BfRuntimeTest):
             # Configure the packet generation timer application
             logger.info("configure pktgen application")
             if g_is_tofino:
-                data = pktgen_app_cfg_table.make_data([gc.DataTuple('timer_nanosec', time),
+                data = pktgen_app_cfg_table.make_data([gc.DataTuple('timer_nanosec', time_ns),
                                                        gc.DataTuple(
                                                            'app_enable', bool_val=False),
                                                        gc.DataTuple(
@@ -221,7 +162,7 @@ class TimerPktgenTest(BfRuntimeTest):
                                                        gc.DataTuple('trigger_counter', 0)],
                                                       'trigger_timer_periodic')
             if g_is_tofino2:
-                data = pktgen_app_cfg_table.make_data([gc.DataTuple('timer_nanosec', time),
+                data = pktgen_app_cfg_table.make_data([gc.DataTuple('timer_nanosec', time_ns),
                                                        gc.DataTuple(
                                                            'app_enable', bool_val=True),
                                                        gc.DataTuple(
@@ -249,17 +190,18 @@ class TimerPktgenTest(BfRuntimeTest):
                                                            'pkt_counter', 0),
                                                        gc.DataTuple(
                                                            'trigger_counter', 0),
-                                                       gc.DataTuple('assigned_chnl_id', pgen_port(0))],
+                                                       gc.DataTuple('assigned_chnl_id', chan_port)],
                                                       'trigger_timer_periodic')
             logger.info("configure packet buffer")
-            pktgen_pkt_buffer_table.entry_add(
+            pktgen_pkt_buffer_table.entry_mod(
                 target,
                 [pktgen_pkt_buffer_table.make_key([gc.KeyTuple('pkt_buffer_offset', buff_offset),
                                                    gc.KeyTuple('pkt_buffer_size', (pktlen))])],
                 [pktgen_pkt_buffer_table.make_data([gc.DataTuple('buffer', bytearray(bytes(p)[:]))])])
             
             logger.info("enable pktgen")
-            pktgen_app_cfg_table.entry_add(
+            # pktgen_app_cfg_table does not have add function
+            pktgen_app_cfg_table.entry_mod(
                 target,
                 [pktgen_app_cfg_table.make_key(
                     [gc.KeyTuple('app_id', g_timer_app_id)])],
@@ -267,7 +209,6 @@ class TimerPktgenTest(BfRuntimeTest):
 
 
             time.sleep(1)
-            
             # Disable the application.
             logger.info("disable pktgen")
             pktgen_app_cfg_table.entry_mod(
@@ -282,8 +223,30 @@ class TimerPktgenTest(BfRuntimeTest):
                 [pktgen_port_cfg_table.make_key(
                     [gc.KeyTuple('dev_port', src_port)])],
                 [pktgen_port_cfg_table.make_data([gc.DataTuple('pktgen_enable', bool_val=False)])])
-            
+           
+            time.sleep(1)
 
+
+            resp = self.forward.entry_get(target,
+                                        [self.forward.make_key([gc.KeyTuple('ig_intr_md.ingress_port', src_port)])],
+                                        {"from_hw": True},
+                                        self.forward.make_data(
+                                            [gc.DataTuple("$COUNTER_SPEC_BYTES"),
+                                             gc.DataTuple("$COUNTER_SPEC_PKTS")],
+                                            'SwitchIngress.set_port', get=True)
+                                        )
+ 
+            # parse resp to get the counter
+            data_dict = next(resp)[0].to_dict()
+            recv_pkts = data_dict["$COUNTER_SPEC_PKTS"]
+            recv_bytes = data_dict["$COUNTER_SPEC_BYTES"] 
+            print(recv_pkts, recv_bytes)
+
+
+            self.forward.entry_del(
+                target,
+                [self.forward.make_key([gc.KeyTuple('ig_intr_md.ingress_port', src_port)])]
+            )
 
         except gc.BfruntimeRpcException as e:
             raise e
