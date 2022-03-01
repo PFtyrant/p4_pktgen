@@ -234,7 +234,7 @@ class TimerPktgenTest(BfRuntimeTest):
                                                    gc.KeyTuple('pkt_buffer_size', pktlen)])],
                 [pktgen_pkt_buffer_table.make_data([gc.DataTuple('buffer', bytearray(bytes(gp)[:]))])])
 
-            pktgen_app_cfg_table.entry_add(
+            pktgen_app_cfg_table.entry_mod(
                 target,
                 [pktgen_app_cfg_table.make_key(
                     [gc.KeyTuple('app_id', app_id)])],

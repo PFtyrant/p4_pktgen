@@ -30,7 +30,6 @@
 
 struct headers {
     pktgen_timer_header_t timer;
-    pktgen_port_down_header_t port_down;
     ethernet_h ethernet;
     vlan_tag_h vlan_tag;
     ipv4_h ipv4;
@@ -58,21 +57,14 @@ parser SwitchIngressParser(
         }
     }
     state parse_pktgen {
-        pktgen_port_down_header_t pktgen_pd_hdr = packet.lookahead<pktgen_port_down_header_t>();
-        //pktgen_timer_header_t pktgen_timer_hdr = packet.lookahead<pktgen_timer_header_t>();
-        transition select(pktgen_pd_hdr.app_id) {
-        //transition select(pktgen_timer_hdr.app_id) {
+        pktgen_timer_header_t pktgen_timer_hdr = packet.lookahead<pktgen_timer_header_t>();
+        transition select(pktgen_timer_hdr.app_id) {
                 1 : parse_pktgen_timer;
-                2 : parse_pktgen_port_down;
                 default : reject;
         }
     }
     state parse_pktgen_timer {
         packet.extract(hdr.timer);
-        transition parse_ethernet;
-    }
-    state parse_pktgen_port_down {
-        packet.extract(hdr.port_down);
         transition parse_ethernet;
     }
     state parse_ethernet {
@@ -123,41 +115,19 @@ control SwitchIngress(
         }
         actions = {
             match;
+	    NoAction;
         }
-        //const default_action = NoAction();
-        size = 1024;
-    }
-    // p table is used for port_down pktgen app
-    table p {
-        key = {
-            hdr.port_down.pipe_id   : exact;
-            hdr.port_down.app_id    : exact;
-            hdr.port_down.port_num  : exact;
-            hdr.port_down.packet_id : exact;
-            ig_intr_md.ingress_port : exact;
-        }
-        actions = {
-            match;
-        }
-        //const default_action = NoAction();
+        const default_action = NoAction();
         size = 1024;
     }
 
     apply {
-#if __TARGET_TOFINO__ == 1
-        if (ig_intr_md.ingress_port == 68) {
-#else
-        if (ig_intr_md.ingress_port == 6) {
-#endif
-            if (t.apply().hit) {
+        if (t.apply().hit) {
                 hdr.timer.setInvalid();
                 indirect_counter.count(ig_intr_tm_md.ucast_egress_port);
-            } else if (p.apply().hit) {
-                hdr.port_down.setInvalid();
-            } else {}
+             
         } else {
-            hdr.timer.setInvalid();
-            hdr.port_down.setInvalid();
+            //hdr.timer.setInvalid();
 #if __TARGET_TOFINO__ == 1
 	    ig_intr_tm_md.ucast_egress_port = 2;
 #else

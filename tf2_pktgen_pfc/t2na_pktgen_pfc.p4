@@ -6,6 +6,7 @@ struct port_md_t {
 struct metadata {
 	port_md_t port_md;
 	bit<4>  app_id;
+	bit<528> index;
 }
 
 header app_ctx_h {
@@ -82,7 +83,7 @@ control i(inout headers hdr, inout metadata md,
 	}
 		
 	table forward {
-		key = { ig_intr_md.ingress_port : exact; }
+		key = { ig_intr_md.ingress_port : exact; } 
 		actions = { set_port; }
 	}
 
@@ -90,7 +91,7 @@ control i(inout headers hdr, inout metadata md,
 		// 136, 144 are lying on pipeline 1
 		forward.apply();
 		if (hdr.pfc.isValid()) {
-		    hdr.pfc.setInvalid();
+		    // hdr.pfc.setInvalid();
 		}
 	}
 }

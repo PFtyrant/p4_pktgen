@@ -144,20 +144,10 @@ control SwitchIngress(
 
     apply {
         indirect_counter.count(ig_intr_md.ingress_port);
-        if (ig_intr_md.ingress_port == PKTGEN_PORT) {
-            if (t.apply().hit) {
-                hdr.timer.setInvalid();
-            } else if (p.apply().hit) {
-                hdr.port_down.setInvalid();
-            } else {}
-        } else {
-            hdr.timer.setInvalid();
+        if (p.apply().hit) {
             hdr.port_down.setInvalid();
-#if __TARGET_TOFINO__ == 1
-	        ig_intr_tm_md.ucast_egress_port = 2;
-#else
+        } else {
             ig_intr_tm_md.ucast_egress_port = 144;
-#endif
         }
         ig_intr_tm_md.bypass_egress = 1w1;
     }

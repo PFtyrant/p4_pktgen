@@ -60,21 +60,6 @@ for device, port, ifname in config["interfaces"]:
         swports.append(port)
         swports.sort()
 
-swports_0 = []
-swports_1 = []
-swports_2 = []
-swports_3 = []
-# the following method categorizes the ports in ports.json file as belonging to either of the pipes (0, 1, 2, 3)
-for port in swports:
-    pipe = port_to_pipe(port)
-    if pipe == 0:
-        swports_0.append(port)
-    elif pipe == 1:
-        swports_1.append(port)
-    elif pipe == 2:
-        swports_2.append(port)
-    elif pipe == 3:
-        swports_3.append(port)
 
 
 def CfgPortDownTable(self, target, i_port, pipe_id, port_num, packet_id, o_port):
@@ -160,13 +145,13 @@ def pgen_port(pipe_id):
 class PortDownPktgenTest(BfRuntimeTest):
     def setUp(self):
         client_id = 0
-        p4_name = "tna_pktgen_portdown_test"
+        p4_name = "t2na_pktgen_portdown_test"
         BfRuntimeTest.setUp(self, client_id, p4_name)
 
     def runTest(self):
         logger.info(
             "=============== Testing Packet Generator trigger by port down ===============")
-        bfrt_info = self.interface.bfrt_info_get("tna_pktgen_portdown_test")
+        bfrt_info = self.interface.bfrt_info_get("t2na_pktgen_portdown_test")
 
         pktgen_app_cfg_table = bfrt_info.table_get("app_cfg")
         pktgen_pkt_buffer_table = bfrt_info.table_get("pkt_buffer")
@@ -185,7 +170,7 @@ class PortDownPktgenTest(BfRuntimeTest):
             outport = 0
             portdown_port = 1
         else:
-            outport = 5  # cpu port
+            outport = 4  # cpu port
             portdown_port = 144  # eth port
         pipe_id = 1
         src_port = make_port(pipe_id, 6)
@@ -214,28 +199,6 @@ class PortDownPktgenTest(BfRuntimeTest):
 
             logger.info("configure pktgen application")
             port_mask_sel = 0
-            '''
-            if g_is_tofino:
-                data = pktgen_app_cfg_table.make_data([gc.DataTuple('app_enable', bool_val=False),
-                                                       gc.DataTuple(
-                                                           'pkt_len', (pktlen - 0)),
-                                                       gc.DataTuple(
-                                                           'pkt_buffer_offset', buff_offset),
-                                                       gc.DataTuple(
-                                                           'pipe_local_source_port', src_port),
-                                                       gc.DataTuple(
-                                                           'increment_source_port', bool_val=False),
-                                                       gc.DataTuple(
-                                                           'batch_count_cfg', b_count - 1),
-                                                       gc.DataTuple(
-                                                           'packets_per_batch_cfg', p_count - 1),
-                                                       gc.DataTuple(
-                                                           'batch_counter', 0),
-                                                       gc.DataTuple(
-                                                           'pkt_counter', 0),
-                                                       gc.DataTuple('trigger_counter', 0)],
-                                                      'trigger_port_down')
-            '''
             if g_is_tofino2:
                 data = pktgen_app_cfg_table.make_data([gc.DataTuple('port_mask_sel', port_mask_sel),
                                                        gc.DataTuple(
@@ -247,25 +210,11 @@ class PortDownPktgenTest(BfRuntimeTest):
                                                        gc.DataTuple(
                                                            'pipe_local_source_port', src_port),
                                                        gc.DataTuple(
-                                                           'increment_source_port', bool_val=False),
-                                                       gc.DataTuple(
                                                            'batch_count_cfg', b_count - 1),
                                                        gc.DataTuple(
                                                            'packets_per_batch_cfg', p_count - 1),
-                                                       gc.DataTuple(
-                                                           'batch_counter', 0),
-                                                       gc.DataTuple(
-                                                           'pkt_counter', 0),
-                                                       gc.DataTuple(
-                                                           'trigger_counter', 0),
-                                                       gc.DataTuple('assigned_chnl_id', pgen_port(0))],
+                                                       gc.DataTuple('assigned_chnl_id', 6)],
                                                       'trigger_port_down')
-            pktgen_app_cfg_table.entry_add(
-                target,
-                [pktgen_app_cfg_table.make_key(
-                    [gc.KeyTuple('app_id', g_port_down_app_id)])],
-                [data]
-            )
 
             logger.info("configure packet buffer")
             pktgen_pkt_buffer_table.entry_add(
@@ -305,8 +254,7 @@ class PortDownPktgenTest(BfRuntimeTest):
                 target,
                 [pktgen_app_cfg_table.make_key(
                     [gc.KeyTuple('app_id', g_port_down_app_id)])],
-                [pktgen_app_cfg_table.make_data([gc.DataTuple('app_enable', bool_val=True)],
-                                                'trigger_port_down')]
+                [data]
             )
 
             pktgen_port_cfg_table.entry_mod(
@@ -329,7 +277,7 @@ class PortDownPktgenTest(BfRuntimeTest):
                                                 'trigger_port_down')]
             )
 
-            logger.info("disable port for pktgen")
+            logger.info("disable port_cfg")
             pktgen_port_cfg_table.entry_mod(
                 target,
                 [pktgen_port_cfg_table.make_key(

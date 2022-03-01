@@ -288,7 +288,7 @@ class TestPFC(BfRuntimeTest, pd_base_tests.ThriftInterfaceDataPlane):
             self.tm.tm_set_q_guaranteed_min_limit(dev_id, egr_port, 0, 100)
             #self.tm.tm_set_q_guaranteed_min_limit(dev_id, egr_port, 0, 1000)
             self.tm.tm_set_q_shaping_rate(
-                dev_id, egr_port, 0, True, 150, 300)  # 100, 250
+                dev_id, egr_port, 0, True, 100, 250)  # 100, 250
             self.tm.tm_enable_q_max_shaping_rate(dev_id, egr_port, 0)
 
             input("Hit enter to clean up")

@@ -46,7 +46,7 @@ def make_port(pipe, local_port):
     return (pipe << 7) | local_port
 
 
-class TimerPktgenTest(BfRuntimeTest):
+class DprsrPktgenTest(BfRuntimeTest):
     def setUp(self):
         client_id = 0
         BfRuntimeTest.setUp(self, client_id, p4_name)
@@ -137,7 +137,7 @@ class TimerPktgenTest(BfRuntimeTest):
                                                           gc.DataTuple(
                                                               'pattern_mask', pattern_mask)],
                                                          'trigger_dprsr')
-        pktgen_app_cfg_table.entry_add(
+        pktgen_app_cfg_table.entry_mod(
             trgt,
             [pktgen_app_cfg_table.make_key(
                 [gc.KeyTuple('app_id', g_trig_dp_app_id)])],
