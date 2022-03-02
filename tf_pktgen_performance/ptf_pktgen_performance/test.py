@@ -67,7 +67,7 @@ def pgen_port(pipe_id):
 
 def make_packet(pktlen):
         p = testutils.simple_ip_packet(
-            pktlen=pktlen, eth_dst="99:99:99:99:99:99")
+                pktlen=pktlen, eth_dst="ab:ab:ab:88:ab:ab", eth_src="08:00:aa:aa:aa:aa")
         print(p.show())
         return p
 
@@ -98,9 +98,9 @@ class TimerPktgenTest(BfRuntimeTest):
         
         pktlens = [64, 128, 256, 512, 1024, 1518]
 
-        pgen_pipe_id = 1
-        chan_port =0
-        pktlens_id = 4
+        pgen_pipe_id = 0
+        chan_port = 6
+        pktlens_id = 1
         src_port = make_port(pgen_pipe_id, chan_port)
         p_count = 1  # packets per batch
         b_count = 1  # batch number
@@ -112,6 +112,7 @@ class TimerPktgenTest(BfRuntimeTest):
         if g_is_tofino2:
             out_port = 144
 
+        print("src_port", src_port)
         try:
             self.forward.entry_add(
                 target,

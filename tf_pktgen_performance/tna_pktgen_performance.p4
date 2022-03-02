@@ -116,7 +116,8 @@ control SwitchIngress(
 	}
 	// If it is not set to invalid, the packets will not go out. Why does this function make packets stuck?
 	//hdr.timer.setInvalid();
-
+	hdr.timer.packet_id = 0xff;
+	//hdr.ethernet.ether_type = 0x800;
 	t.apply();
         ig_intr_tm_md.bypass_egress = 1w1;
     }

@@ -157,8 +157,8 @@ class TimerPktgenTest(BfRuntimeTest):
         b_count = 1  # batch number
         buff_offset = 0
 
-        pattern_value = 0x00001234
-        pattern_mask = 0x00000000
+        pattern_value = 0x1111
+        pattern_mask = 0xffff
         ing_port = 136
         egr_port = 144
         pgen_port = 6
