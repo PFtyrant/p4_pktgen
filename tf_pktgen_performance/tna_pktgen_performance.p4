@@ -54,7 +54,7 @@ parser SwitchIngressParser(
         pktgen_timer_header_t pktgen_timer_hdr = packet.lookahead<pktgen_timer_header_t>();
         transition select(pktgen_timer_hdr.app_id) {
             1 : parse_pktgen_timer;
-            default : reject;
+            default : accept;
         }
     }
 
@@ -115,9 +115,7 @@ control SwitchIngress(
 	    indirect_counter.count(index);
 	}
 	// If it is not set to invalid, the packets will not go out. Why does this function make packets stuck?
-	//hdr.timer.setInvalid();
-	hdr.timer.packet_id = 0xff;
-	//hdr.ethernet.ether_type = 0x800;
+	hdr.timer.setInvalid();
 	t.apply();
         ig_intr_tm_md.bypass_egress = 1w1;
     }

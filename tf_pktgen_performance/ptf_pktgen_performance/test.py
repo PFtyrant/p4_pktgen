@@ -65,9 +65,11 @@ def pgen_port(pipe_id):
 
 
 
-def make_packet(pktlen):
-        p = testutils.simple_ip_packet(
-                pktlen=pktlen, eth_dst="ab:ab:ab:88:ab:ab", eth_src="08:00:aa:aa:aa:aa")
+def make_packet(pkt_len):
+        # WARN: If you do not senInvaild hdr.timer at pipeline, then do not use multicast MAC address in eth_dst, 
+        # It will cause packet drop.
+        p = testutils.simple_eth_packet(
+                pktlen=pkt_len, eth_dst="aa:aa:00:99:99:99", eth_src="ca:fe:99:ca:fe:88")
         print(p.show())
         return p
 
@@ -110,8 +112,7 @@ class TimerPktgenTest(BfRuntimeTest):
         if g_is_tofino:
             out_port = 0
         if g_is_tofino2:
-            out_port = 144
-
+            out_port =	 144
         print("src_port", src_port)
         try:
             self.forward.entry_add(

@@ -1,3 +1,10 @@
+# WARN: This repo is not organized yet, and do not ensure anyting.
+
+
+# Tested SDE
+
+* SDE 9.7.1
+
 # p4_pktgen
 
 Simple Example of p4_pktgen:
@@ -28,6 +35,15 @@ Note: pktgen check 32-bit front of the packet for pattern matching.
 Deparser Triggr : Using pktgen extern to trigger pktgen. This feature is only triggring pktgen, all of the setting of pktgen defined by control plane.
 
 PFC : When PPG and Queue are meet the threshold, the pktgen will generate the PFC packet.
+
+## Switch Port Setup
+
+for pktgen feature testing.
+bfshell -f port_up.txt
+
+for pktgen performance testing.
+bfshell -f port_up_perf.txt
+
 
 ## Test Result
 
